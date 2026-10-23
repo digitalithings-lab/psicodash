@@ -14,6 +14,7 @@ const PSY_NAV: NavItem[] = [
   { label: 'Inicio', icon: 'home', link: '/inicio' },
   { label: 'Pacientes', icon: 'users', link: '/pacientes' },
   { label: 'Agenda', icon: 'calendar', link: '/agenda' },
+  { label: 'Emociones', icon: 'sparkles', link: '/emociones' },
   { label: 'Mi perfil', icon: 'user', link: '/perfil' },
 ];
 

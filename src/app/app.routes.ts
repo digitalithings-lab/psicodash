@@ -31,6 +31,7 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/psy/patient-detail').then((m) => m.PatientDetailPage),
       },
       { path: 'agenda', title: 'Agenda · Florece', loadComponent: () => import('./pages/psy/agenda').then((m) => m.Agenda) },
+      { path: 'emociones', title: 'Emociones · Florece', loadComponent: () => import('./pages/psy/emotions').then((m) => m.Emotions) },
       { path: 'perfil', title: 'Mi perfil · Florece', loadComponent: () => import('./pages/psy/profile').then((m) => m.Profile) },
     ],
   },

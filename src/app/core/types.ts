@@ -120,6 +120,17 @@ export interface PatientDetail {
   routines: Routine[];
   responses: PatientResponse[];
   appointments: Appointment[];
+  contents: AssignedContent[];
+}
+
+export interface AssignedContent {
+  id: string;
+  title: string;
+  kind: 'READING' | 'LINK';
+  body: string | null;
+  url: string | null;
+  createdAt: string;
+  completedAt: string | null;
 }
 
 export interface CatalogChallenge {

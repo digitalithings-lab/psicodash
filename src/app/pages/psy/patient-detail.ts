@@ -10,7 +10,7 @@ import { Icon } from '../../shared/icon';
 import { Empty, ErrorBanner, SkeletonCards } from '../../shared/ui';
 import { RoutineForm } from './routine-form';
 
-type Tab = 'retos' | 'respuestas' | 'citas';
+type Tab = 'retos' | 'respuestas' | 'contenido' | 'citas';
 type ResponseFilter = 'all' | 'routine' | 'daily';
 
 @Component({
@@ -159,6 +159,77 @@ type ResponseFilter = 'all' | 'routine' | 'daily';
           </div>
         }
 
+        @case ('contenido') {
+          <div class="grid gap-6 lg:grid-cols-5">
+            <section class="card space-y-4 lg:col-span-2">
+              <h2 class="text-lg font-extrabold">Compartir contenido</h2>
+              <p class="text-sm text-muted">Lo verá en «Actividades» de su app. Al marcarlo como hecho gana agua para su jardín.</p>
+              <div class="flex gap-2">
+                <button
+                  class="chip flex-1 justify-center px-4 py-2 text-sm"
+                  [class]="contentKind === 'READING' ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                  (click)="contentKind = 'READING'"
+                >
+                  📖 Lectura
+                </button>
+                <button
+                  class="chip flex-1 justify-center px-4 py-2 text-sm"
+                  [class]="contentKind === 'LINK' ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                  (click)="contentKind = 'LINK'"
+                >
+                  🎬 Enlace
+                </button>
+              </div>
+              <div>
+                <label class="label" for="ct">Título</label>
+                <input id="ct" class="input" name="ct" maxlength="120" [(ngModel)]="contentTitle" />
+              </div>
+              @if (contentKind === 'READING') {
+                <div>
+                  <label class="label" for="cb">Texto</label>
+                  <textarea id="cb" class="input min-h-40" name="cb" maxlength="5000" [(ngModel)]="contentBody"></textarea>
+                </div>
+              } @else {
+                <div>
+                  <label class="label" for="cu">Enlace (video, artículo…)</label>
+                  <input id="cu" class="input" name="cu" placeholder="https://" [(ngModel)]="contentUrl" />
+                </div>
+              }
+              <app-error [message]="contentError()" />
+              <button class="btn-primary w-full" [disabled]="savingContent()" (click)="addContent()">Compartir</button>
+            </section>
+
+            <section class="space-y-3 lg:col-span-3">
+              @for (c of d.contents; track c.id) {
+                <article class="card flex items-start gap-4">
+                  <span class="text-3xl">{{ c.kind === 'READING' ? '📖' : '🎬' }}</span>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="font-extrabold">{{ c.title }}</h3>
+                    @if (c.url) {
+                      <a class="block truncate text-sm text-sky-500 hover:underline" [href]="c.url" target="_blank" rel="noopener">{{ c.url }}</a>
+                    }
+                    @if (c.body) {
+                      <p class="mt-1 line-clamp-3 text-sm text-ink">{{ c.body }}</p>
+                    }
+                    <p class="mt-2 text-xs">
+                      @if (c.completedAt) {
+                        <span class="chip bg-leaf-100 text-leaf-700">✓ Lo vio {{ dateTime(c.completedAt) }}</span>
+                      } @else {
+                        <span class="chip bg-sand text-muted">Pendiente</span>
+                      }
+                    </p>
+                  </div>
+                  <button class="rounded-full p-2 text-muted hover:bg-sand" (click)="deleteContent(c.id)" aria-label="Quitar contenido">
+                    <app-icon name="trash" size="sm" />
+                  </button>
+                </article>
+              } @empty {
+                <div class="card"><app-empty emoji="📚" title="Aún no le compartes contenido" text="Comparte lecturas breves o enlaces que refuercen lo que trabajan en sesión." /></div>
+              }
+            </section>
+          </div>
+        }
+
         @case ('citas') {
           <section class="card">
             <app-appointment-list
@@ -202,10 +273,17 @@ export class PatientDetailPage implements OnInit {
   protected readonly editing = signal<Routine | null>(null);
   protected readonly autoSaved = signal(false);
   protected autoPerDay = 3;
+  protected contentKind: 'READING' | 'LINK' = 'READING';
+  protected contentTitle = '';
+  protected contentBody = '';
+  protected contentUrl = '';
+  protected readonly savingContent = signal(false);
+  protected readonly contentError = signal<string | null>(null);
 
   protected readonly tabs: { id: Tab; label: string }[] = [
     { id: 'retos', label: 'Retos' },
     { id: 'respuestas', label: 'Respuestas' },
+    { id: 'contenido', label: 'Contenido' },
     { id: 'citas', label: 'Citas' },
   ];
   protected readonly filters: { id: ResponseFilter; label: string }[] = [
@@ -263,6 +341,36 @@ export class PatientDetailPage implements OnInit {
   protected async toggleActive(routine: Routine) {
     try {
       await this.api.patch(`/psy/routines/${routine.id}`, { active: !routine.active });
+      await this.reload();
+    } catch (err) {
+      this.error.set(errorMessage(err));
+    }
+  }
+
+  protected async addContent() {
+    this.contentError.set(null);
+    if (this.contentTitle.trim().length < 3) return this.contentError.set('Escribe un título.');
+    this.savingContent.set(true);
+    try {
+      await this.api.post(`/psy/patients/${this.patientId()}/content`, {
+        title: this.contentTitle.trim(),
+        kind: this.contentKind,
+        body: this.contentKind === 'READING' ? this.contentBody.trim() : undefined,
+        url: this.contentKind === 'LINK' ? this.contentUrl.trim() : undefined,
+      });
+      this.contentTitle = this.contentBody = this.contentUrl = '';
+      await this.reload();
+    } catch (err) {
+      this.contentError.set(errorMessage(err, 'No pudimos compartir el contenido.'));
+    } finally {
+      this.savingContent.set(false);
+    }
+  }
+
+  protected async deleteContent(id: string) {
+    if (!confirm('¿Quitar este contenido? Tu paciente dejará de verlo.')) return;
+    try {
+      await this.api.delete(`/psy/content/${id}`);
       await this.reload();
     } catch (err) {
       this.error.set(errorMessage(err));

@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+/* Mismos colores y tipografía que la app móvil de Florece. */
+@theme {
+  --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+
+  --color-cream: #fbf7f2;
+  --color-sand: #f3ede4;
+  --color-line: #ede4d8;
+  --color-line-strong: #cdbfae;
+  --color-ink: #2f2b26;
+  --color-muted: #7f776c;
+  --color-soft: #a69d91;
+
+  --color-leaf-50: #f0f7f0;
+  --color-leaf-100: #e4f0e4;
+  --color-leaf-500: #4f8a5b;
+  --color-leaf-600: #467d51;
+  --color-leaf-700: #3a6b45;
+
+  --color-peach-100: #fdeedd;
+  --color-peach-500: #f2a65a;
+  --color-peach-700: #c97b2e;
+
+  --color-lilac-100: #efeafb;
+  --color-lilac-500: #9f8be0;
+
+  --color-sky-100: #e6f0fa;
+  --color-sky-500: #6fa3db;
+
+  --color-rose-100: #fbe8ee;
+  --color-rose-500: #e98aa5;
+
+  --color-danger-100: #f9e2dc;
+  --color-danger-500: #c8553d;
+
+  --shadow-card: 0 4px 14px rgb(90 74 58 / 0.08);
+  --shadow-soft: 0 2px 6px rgb(90 74 58 / 0.05);
+}
+
+/* En Tailwind 4 las clases propias se declaran con @utility para poder combinarlas. */
+@utility card {
+  @apply rounded-3xl bg-white p-6 shadow-card;
+}
+@utility btn {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 font-bold transition
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-leaf-500 text-white shadow-soft hover:bg-leaf-600;
+}
+@utility btn-secondary {
+  @apply btn bg-leaf-100 text-leaf-700 hover:bg-leaf-50;
+}
+@utility btn-ghost {
+  @apply btn text-leaf-700 hover:bg-leaf-50;
+}
+@utility btn-danger {
+  @apply btn bg-danger-100 text-danger-500 hover:opacity-80;
+}
+/* Campos blancos con borde marcado: nunca se confunden con el fondo. */
+@utility input {
+  @apply w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-4 py-2.5 text-ink shadow-soft outline-none
+    placeholder:text-soft focus:border-2 focus:border-leaf-500;
+}
+@utility label {
+  @apply mb-1.5 block text-sm font-bold text-ink;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold;
+}
+@utility skeleton {
+  @apply animate-pulse rounded-xl bg-sand;
+}

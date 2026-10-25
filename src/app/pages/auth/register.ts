@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AuthService } from '../../core/auth.service';
+import { goTo } from '../../core/navigation';
+import { User } from '../../core/types';
 import { ErrorBanner } from '../../shared/ui';
 import { AuthLayout } from './auth-layout';
 
@@ -77,8 +79,9 @@ export class Register {
       return;
     }
     this.loading.set(true);
+    let user: User;
     try {
-      const user = await this.auth.registerPsychologist({
+      user = await this.auth.registerPsychologist({
         email: this.email.trim(),
         password: this.password,
         fullName: this.fullName.trim(),
@@ -86,11 +89,13 @@ export class Register {
         specialties: this.specialties.split(',').map((s) => s.trim()).filter(Boolean),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      await this.router.navigateByUrl(user.role === 'PSYCHOLOGIST' ? '/perfil?bienvenida=1' : this.auth.home());
     } catch (err) {
       this.error.set(errorMessage(err, 'No pudimos crear tu cuenta.'));
-    } finally {
       this.loading.set(false);
+      return;
     }
+    // La cuenta ya existe: un fallo al cambiar de pantalla no debe parecer un error de registro.
+    await goTo(this.router, user.role === 'PSYCHOLOGIST' ? '/perfil?bienvenida=1' : this.auth.home());
+    this.loading.set(false);
   }
 }

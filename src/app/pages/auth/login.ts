@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AuthService } from '../../core/auth.service';
+import { goTo } from '../../core/navigation';
+import { User } from '../../core/types';
 import { ErrorBanner } from '../../shared/ui';
 import { AuthLayout } from './auth-layout';
 
@@ -48,13 +50,15 @@ export class Login {
       return;
     }
     this.loading.set(true);
+    let user: User;
     try {
-      const user = await this.auth.login(this.email.trim(), this.password);
-      await this.router.navigateByUrl(user.role === 'USER' ? '/sin-acceso' : this.auth.home());
+      user = await this.auth.login(this.email.trim(), this.password);
     } catch (err) {
       this.error.set(errorMessage(err, 'No pudimos iniciar sesión.'));
-    } finally {
       this.loading.set(false);
+      return;
     }
+    await goTo(this.router, user.role === 'USER' ? '/sin-acceso' : this.auth.home());
+    this.loading.set(false);
   }
 }

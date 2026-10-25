@@ -1,11 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { API_URL } from './config';
 import { AuthResponse, User } from './types';
 
 const REFRESH_KEY = 'florece.panel.refresh';
+// El backend puede tardar unos segundos en despertar; más de esto ya es un problema.
+const AUTH_TIMEOUT_MS = 30_000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -32,7 +34,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<User> {
-    return this.save(await firstValueFrom(this.http.post<AuthResponse>(`${API_URL}/auth/login`, { email, password })));
+    return this.save(await firstValueFrom(this.http.post<AuthResponse>(`${API_URL}/auth/login`, { email, password }).pipe(timeout(AUTH_TIMEOUT_MS))));
   }
 
   async registerPsychologist(body: {
@@ -45,7 +47,9 @@ export class AuthService {
   }): Promise<User> {
     return this.save(
       await firstValueFrom(
-        this.http.post<AuthResponse>(`${API_URL}/auth/register-psychologist`, { ...body, consents: ['TERMS', 'PRIVACY'] }),
+        this.http
+          .post<AuthResponse>(`${API_URL}/auth/register-psychologist`, { ...body, consents: ['TERMS', 'PRIVACY'] })
+          .pipe(timeout(AUTH_TIMEOUT_MS)),
       ),
     );
   }
@@ -57,7 +61,7 @@ export class AuthService {
         const refreshToken = localStorage.getItem(REFRESH_KEY);
         if (!refreshToken) return false;
         try {
-          this.save(await firstValueFrom(this.http.post<AuthResponse>(`${API_URL}/auth/refresh`, { refreshToken })));
+          this.save(await firstValueFrom(this.http.post<AuthResponse>(`${API_URL}/auth/refresh`, { refreshToken }).pipe(timeout(AUTH_TIMEOUT_MS))));
           return true;
         } catch {
           this.clear();

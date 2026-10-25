@@ -78,7 +78,7 @@ export class Register {
     }
     this.loading.set(true);
     try {
-      await this.auth.registerPsychologist({
+      const user = await this.auth.registerPsychologist({
         email: this.email.trim(),
         password: this.password,
         fullName: this.fullName.trim(),
@@ -86,7 +86,7 @@ export class Register {
         specialties: this.specialties.split(',').map((s) => s.trim()).filter(Boolean),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      await this.router.navigateByUrl('/perfil?bienvenida=1');
+      await this.router.navigateByUrl(user.role === 'PSYCHOLOGIST' ? '/perfil?bienvenida=1' : this.auth.home());
     } catch (err) {
       this.error.set(errorMessage(err, 'No pudimos crear tu cuenta.'));
     } finally {

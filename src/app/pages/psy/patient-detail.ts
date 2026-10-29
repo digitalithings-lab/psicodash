@@ -59,7 +59,7 @@ type ResponseFilter = 'all' | 'routine' | 'daily';
           <button
             role="tab"
             class="flex-1 rounded-full px-4 py-2.5 font-bold transition"
-            [class]="tab() === t.id ? 'bg-white text-leaf-700 shadow-soft' : 'text-muted'"
+            [class]="tab() === t.id ? 'bg-surface text-leaf-700 shadow-soft' : 'text-muted'"
             [attr.aria-selected]="tab() === t.id"
             (click)="tab.set(t.id)"
           >
@@ -123,7 +123,7 @@ type ResponseFilter = 'all' | 'routine' | 'daily';
             @for (f of filters; track f.id) {
               <button
                 class="chip px-4 py-2 text-sm"
-                [class]="filter() === f.id ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                [class]="filter() === f.id ? 'bg-leaf-500 text-white' : 'bg-surface text-muted shadow-soft'"
                 (click)="filter.set(f.id)"
               >
                 {{ f.label }}
@@ -167,14 +167,14 @@ type ResponseFilter = 'all' | 'routine' | 'daily';
               <div class="flex gap-2">
                 <button
                   class="chip flex-1 justify-center px-4 py-2 text-sm"
-                  [class]="contentKind === 'READING' ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                  [class]="contentKind === 'READING' ? 'bg-leaf-500 text-white' : 'bg-surface text-muted shadow-soft'"
                   (click)="contentKind = 'READING'"
                 >
                   📖 Lectura
                 </button>
                 <button
                   class="chip flex-1 justify-center px-4 py-2 text-sm"
-                  [class]="contentKind === 'LINK' ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                  [class]="contentKind === 'LINK' ? 'bg-leaf-500 text-white' : 'bg-surface text-muted shadow-soft'"
                   (click)="contentKind = 'LINK'"
                 >
                   🎬 Enlace

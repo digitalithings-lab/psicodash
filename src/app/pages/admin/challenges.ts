@@ -93,7 +93,7 @@ const EVIDENCE_LABELS: Record<EvidenceType, string> = {
                 <button
                   type="button"
                   class="chip px-3 py-1.5 text-sm"
-                  [class]="e.focusAreas!.includes(a) ? 'bg-leaf-500 text-white' : 'bg-white text-muted shadow-soft'"
+                  [class]="e.focusAreas!.includes(a) ? 'bg-leaf-500 text-white' : 'bg-surface text-muted shadow-soft'"
                   (click)="toggleArea(a)"
                 >
                   {{ area(a) }}

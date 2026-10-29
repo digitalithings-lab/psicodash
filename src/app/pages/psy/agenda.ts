@@ -26,7 +26,7 @@ interface Range {
         <button
           role="tab"
           class="flex-1 rounded-full px-4 py-2.5 font-bold transition"
-          [class]="section() === s.id ? 'bg-white text-leaf-700 shadow-soft' : 'text-muted'"
+          [class]="section() === s.id ? 'bg-surface text-leaf-700 shadow-soft' : 'text-muted'"
           [attr.aria-selected]="section() === s.id"
           (click)="section.set(s.id)"
         >

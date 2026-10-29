@@ -105,7 +105,7 @@ interface EmotionsResponse {
           <div>
             <label class="label" for="ec">Color en el calendario</label>
             <div class="flex items-center gap-3">
-              <input id="ec" type="color" class="h-12 w-16 cursor-pointer rounded-xl border-[1.5px] border-line-strong bg-white" name="ec" [(ngModel)]="e.color" />
+              <input id="ec" type="color" class="h-12 w-16 cursor-pointer rounded-xl border-[1.5px] border-line-strong bg-surface" name="ec" [(ngModel)]="e.color" />
               <input class="input font-mono uppercase" name="ech" maxlength="7" [(ngModel)]="e.color" aria-label="Código de color" />
             </div>
           </div>

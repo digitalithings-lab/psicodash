@@ -37,11 +37,11 @@ import { ErrorBanner, Modal } from '../../shared/ui';
         <div>
           <span class="label">¿Cómo responde?</span>
           <div class="grid gap-2 sm:grid-cols-2">
-            <label class="flex cursor-pointer items-start gap-2 rounded-2xl border-2 bg-white p-3" [class]="evidenceType === 'TEXT' ? 'border-leaf-500' : 'border-line'">
+            <label class="flex cursor-pointer items-start gap-2 rounded-2xl border-2 bg-surface p-3" [class]="evidenceType === 'TEXT' ? 'border-leaf-500' : 'border-line'">
               <input type="radio" name="evidence" value="TEXT" class="mt-1 accent-leaf-500" [(ngModel)]="evidenceType" />
               <span><b>Respuesta escrita</b><br /><span class="text-xs text-muted">Escribe lo que se le pide.</span></span>
             </label>
-            <label class="flex cursor-pointer items-start gap-2 rounded-2xl border-2 bg-white p-3" [class]="evidenceType === 'INTERACTIVE' ? 'border-leaf-500' : 'border-line'">
+            <label class="flex cursor-pointer items-start gap-2 rounded-2xl border-2 bg-surface p-3" [class]="evidenceType === 'INTERACTIVE' ? 'border-leaf-500' : 'border-line'">
               <input type="radio" name="evidence" value="INTERACTIVE" class="mt-1 accent-leaf-500" [(ngModel)]="evidenceType" />
               <span><b>Actividad + reflexión</b><br /><span class="text-xs text-muted">La hace y cuenta qué observó.</span></span>
             </label>
@@ -66,7 +66,7 @@ import { ErrorBanner, Modal } from '../../shared/ui';
               <button
                 type="button"
                 class="size-12 rounded-full border-2 font-bold transition"
-                [class]="weekdays().includes(d) ? 'border-leaf-500 bg-leaf-500 text-white' : 'border-line bg-white text-muted'"
+                [class]="weekdays().includes(d) ? 'border-leaf-500 bg-leaf-500 text-white' : 'border-line bg-surface text-muted'"
                 (click)="toggleDay(d)"
                 [attr.aria-pressed]="weekdays().includes(d)"
               >

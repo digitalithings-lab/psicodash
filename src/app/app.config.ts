@@ -5,6 +5,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
 import { AuthService } from './core/auth.service';
 import { isStaleBundleError, reloadTo } from './core/navigation';
+import { ThemeService } from './core/theme.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,5 +21,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     // Recupera la sesión guardada antes de decidir a qué pantalla ir.
     provideAppInitializer(() => inject(AuthService).restore()),
+    provideAppInitializer(() => void inject(ThemeService)),
   ],
 };

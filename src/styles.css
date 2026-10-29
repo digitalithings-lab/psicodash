@@ -1,74 +1,271 @@
 @import 'tailwindcss';
 
-/* Mismos colores y tipografía que la app móvil de Florece. */
-@theme {
+/* El modo oscuro se activa con la clase .dark en <html> (ver core/theme.service.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Sistema de color de Florece. Los nombres son los mismos en claro y oscuro: cada pantalla
+ * usa el token (bg-surface, text-ink, bg-leaf-100…) y el tema decide el valor.
+ * Proporción: fondo y superficies ~60 %, estructura y texto ~30 %, verde de acción ~10 %.
+ */
+@theme inline {
   --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
 
-  --color-cream: #fbf7f2;
-  --color-sand: #f3ede4;
-  --color-line: #ede4d8;
-  --color-line-strong: #cdbfae;
-  --color-ink: #2f2b26;
-  --color-muted: #7f776c;
-  --color-soft: #a69d91;
+  /* Semánticos */
+  --color-background: var(--c-background);
+  --color-surface: var(--c-surface);
+  --color-surface-muted: var(--c-sand);
+  --color-foreground: var(--c-ink);
+  --color-border: var(--c-line);
+  --color-border-strong: var(--c-line-strong);
+  --color-primary: var(--c-leaf-500);
+  --color-ring: var(--c-ring);
 
-  --color-leaf-50: #f0f7f0;
-  --color-leaf-100: #e4f0e4;
-  --color-leaf-500: #4f8a5b;
-  --color-leaf-600: #467d51;
-  --color-leaf-700: #3a6b45;
+  /* Paleta (nombres heredados que ya usan las pantallas) */
+  --color-cream: var(--c-background);
+  --color-sand: var(--c-sand);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-soft: var(--c-soft);
 
-  --color-peach-100: #fdeedd;
+  --color-leaf-50: var(--c-leaf-50);
+  --color-leaf-100: var(--c-leaf-100);
+  --color-leaf-500: var(--c-leaf-500);
+  --color-leaf-600: var(--c-leaf-600);
+  --color-leaf-700: var(--c-leaf-700);
+  --color-leaf-900: #1f3d27;
+
+  --color-peach-100: var(--c-peach-100);
   --color-peach-500: #f2a65a;
-  --color-peach-700: #c97b2e;
+  --color-peach-700: var(--c-peach-700);
 
-  --color-lilac-100: #efeafb;
-  --color-lilac-500: #9f8be0;
+  --color-lilac-100: var(--c-lilac-100);
+  --color-lilac-500: var(--c-lilac-500);
 
-  --color-sky-100: #e6f0fa;
-  --color-sky-500: #6fa3db;
+  --color-sky-100: var(--c-sky-100);
+  --color-sky-500: var(--c-sky-500);
 
-  --color-rose-100: #fbe8ee;
-  --color-rose-500: #e98aa5;
+  --color-rose-100: var(--c-rose-100);
+  --color-rose-500: var(--c-rose-500);
 
-  --color-danger-100: #f9e2dc;
-  --color-danger-500: #c8553d;
+  --color-danger-100: var(--c-danger-100);
+  --color-danger-500: var(--c-danger-500);
 
-  --shadow-card: 0 4px 14px rgb(90 74 58 / 0.08);
-  --shadow-soft: 0 2px 6px rgb(90 74 58 / 0.05);
+  --shadow-card: var(--c-shadow-card);
+  --shadow-soft: var(--c-shadow-soft);
+  --shadow-pop: var(--c-shadow-pop);
+
+  --animate-fade-in: fade-in 200ms ease-out both;
+  --animate-fade-up: fade-up 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop-in: pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Tema claro: cálido y suave, como la app. Los textos de color cumplen WCAG AA sobre su fondo. */
+:root {
+  color-scheme: light;
+  --c-background: #fbf7f2;
+  --c-surface: #ffffff;
+  --c-sand: #f3ede4;
+  --c-line: #ede4d8;
+  --c-line-strong: #cdbfae;
+  --c-ink: #2f2b26;
+  --c-muted: #6f675d;
+  --c-soft: #9a9186;
+  --c-ring: #4f8a5b;
+
+  --c-leaf-50: #f0f7f0;
+  --c-leaf-100: #e4f0e4;
+  --c-leaf-500: #427d4f;
+  --c-leaf-600: #386b43;
+  --c-leaf-700: #2f5e3a;
+
+  --c-peach-100: #fdeedd;
+  --c-peach-700: #9c5a1c;
+  --c-lilac-100: #efeafb;
+  --c-lilac-500: #6a54c2;
+  --c-sky-100: #e6f0fa;
+  --c-sky-500: #2f6aa8;
+  --c-rose-100: #fbe8ee;
+  --c-rose-500: #b8496a;
+  --c-danger-100: #f9e2dc;
+  --c-danger-500: #ad3f29;
+
+  --c-shadow-card: 0 1px 2px rgb(90 74 58 / 0.04), 0 8px 24px -12px rgb(90 74 58 / 0.14);
+  --c-shadow-soft: 0 1px 2px rgb(90 74 58 / 0.06);
+  --c-shadow-pop: 0 24px 48px -16px rgb(47 43 38 / 0.28);
+}
+
+/* Tema oscuro: tierra cálida en vez de negro puro, con verdes y tintes más claros para leerse bien. */
+:root.dark {
+  color-scheme: dark;
+  --c-background: #14120f;
+  --c-surface: #1e1b17;
+  --c-sand: #29251f;
+  --c-line: #332e27;
+  --c-line-strong: #4b443b;
+  --c-ink: #f2ede6;
+  --c-muted: #b5ab9f;
+  --c-soft: #8b8277;
+  --c-ring: #7cc08a;
+
+  --c-leaf-50: #1a2a1e;
+  --c-leaf-100: #213326;
+  --c-leaf-500: #3f7c4c;
+  --c-leaf-600: #4a8b58;
+  --c-leaf-700: #94d3a1;
+
+  --c-peach-100: #36281a;
+  --c-peach-700: #f2b77a;
+  --c-lilac-100: #29233d;
+  --c-lilac-500: #bcaaf3;
+  --c-sky-100: #1a2837;
+  --c-sky-500: #93bfec;
+  --c-rose-100: #37202a;
+  --c-rose-500: #f0a3ba;
+  --c-danger-100: #3a1e19;
+  --c-danger-500: #f39a85;
+
+  --c-shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  --c-shadow-soft: none;
+  --c-shadow-pop: 0 24px 48px -12px rgb(0 0 0 / 0.6);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  ::selection {
+    background: var(--c-leaf-100);
+    color: var(--c-ink);
+  }
+  /* Anillo de enfoque visible en todo lo que se puede usar con teclado. */
+  :where(a, button, summary, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--c-ring);
+    outline-offset: 2px;
+    border-radius: 0.75rem;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--c-leaf-500);
+  }
+  /* Quien pide menos movimiento no ve animaciones. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 /* En Tailwind 4 las clases propias se declaran con @utility para poder combinarlas. */
 @utility card {
-  @apply rounded-3xl bg-white p-6 shadow-card;
+  @apply rounded-3xl border border-line/70 bg-surface p-6 shadow-card;
+}
+@utility card-interactive {
+  @apply card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-line-strong/60 hover:shadow-pop active:translate-y-0;
 }
 @utility btn {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 font-bold transition
-    disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-10 cursor-pointer select-none items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold
+    transition-all duration-200 ease-out active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 @utility btn-primary {
   @apply btn bg-leaf-500 text-white shadow-soft hover:bg-leaf-600;
 }
 @utility btn-secondary {
-  @apply btn bg-leaf-100 text-leaf-700 hover:bg-leaf-50;
+  @apply btn bg-leaf-100 text-leaf-700 hover:bg-leaf-100/70;
 }
 @utility btn-ghost {
-  @apply btn text-leaf-700 hover:bg-leaf-50;
+  @apply btn text-leaf-700 hover:bg-leaf-100/70;
+}
+@utility btn-outline {
+  @apply btn border border-line-strong bg-surface text-ink hover:bg-sand;
 }
 @utility btn-danger {
-  @apply btn bg-danger-100 text-danger-500 hover:opacity-80;
+  @apply btn bg-danger-100 text-danger-500 hover:bg-danger-100/70;
 }
-/* Campos blancos con borde marcado: nunca se confunden con el fondo. */
+@utility btn-icon {
+  @apply inline-flex size-10 cursor-pointer items-center justify-center rounded-full text-muted transition-colors duration-200
+    hover:bg-sand hover:text-ink disabled:pointer-events-none disabled:opacity-50;
+}
+/* Campos con borde marcado: nunca se confunden con el fondo. */
 @utility input {
-  @apply w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-4 py-2.5 text-ink shadow-soft outline-none
-    placeholder:text-soft focus:border-2 focus:border-leaf-500;
+  @apply w-full rounded-2xl border-[1.5px] border-line-strong bg-surface px-4 py-2.5 text-ink shadow-soft outline-none
+    transition-[border-color,box-shadow] duration-200 placeholder:text-soft
+    focus:border-leaf-500 focus:ring-4 focus:ring-leaf-500/15
+    aria-invalid:border-danger-500 aria-invalid:focus:ring-danger-500/15
+    disabled:cursor-not-allowed disabled:opacity-60;
 }
 @utility label {
   @apply mb-1.5 block text-sm font-bold text-ink;
 }
+@utility hint {
+  @apply mt-1.5 text-xs text-muted;
+}
 @utility chip {
   @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold;
 }
+@utility link {
+  @apply font-bold text-leaf-700 underline-offset-4 hover:underline;
+}
+@utility eyebrow {
+  @apply text-xs font-extrabold uppercase tracking-[0.12em] text-muted;
+}
 @utility skeleton {
-  @apply animate-pulse rounded-xl bg-sand;
+  @apply rounded-xl;
+  background: linear-gradient(90deg, var(--c-sand) 25%, var(--c-line) 37%, var(--c-sand) 63%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+@utility spinner {
+  @apply inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent;
+}
+
+/* Enlace activo del menú lateral (lo pone routerLinkActive). */
+.nav-active {
+  background: var(--c-leaf-100);
+  color: var(--c-leaf-700) !important;
+}
+.nav-active::before {
+  content: '';
+  position: absolute;
+  left: -0.75rem;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--c-leaf-500);
 }

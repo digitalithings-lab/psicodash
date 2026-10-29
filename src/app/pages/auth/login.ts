@@ -5,32 +5,47 @@ import { errorMessage } from '../../core/auth.interceptor';
 import { AuthService } from '../../core/auth.service';
 import { goTo } from '../../core/navigation';
 import { User } from '../../core/types';
+import { PasswordField } from '../../shared/password-field';
 import { ErrorBanner } from '../../shared/ui';
 import { AuthLayout } from './auth-layout';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink, AuthLayout, ErrorBanner],
+  imports: [FormsModule, RouterLink, AuthLayout, ErrorBanner, PasswordField],
   template: `
     <app-auth-layout title="Qué bueno verte" subtitle="Entra a tu panel de Florece.">
-      <form class="space-y-5" (ngSubmit)="submit()">
+      <form class="space-y-5" (ngSubmit)="submit()" novalidate>
         <div>
           <label class="label" for="email">Correo</label>
-          <input id="email" class="input" type="email" name="email" autocomplete="email" [(ngModel)]="email" required />
+          <input
+            id="email"
+            class="input"
+            type="email"
+            name="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="tu@correo.com"
+            [(ngModel)]="email"
+            required
+          />
         </div>
         <div>
           <label class="label" for="password">Contraseña</label>
-          <input id="password" class="input" type="password" name="password" autocomplete="current-password" [(ngModel)]="password" required />
+          <app-password-field inputId="password" autocomplete="current-password" [(value)]="password" />
         </div>
         <app-error [message]="error()" />
-        <button class="btn-primary w-full py-3" type="submit" [disabled]="loading()">
-          {{ loading() ? 'Entrando…' : 'Entrar' }}
+        <button class="btn-primary w-full py-3 text-base" type="submit" [disabled]="loading()" [attr.aria-busy]="loading()">
+          @if (loading()) {
+            <span class="spinner" aria-hidden="true"></span> Entrando…
+          } @else {
+            Entrar
+          }
         </button>
       </form>
-      <p class="mt-6 text-center text-sm text-muted">
+      <div class="mt-8 rounded-2xl border border-line bg-surface p-4 text-center text-sm text-muted">
         ¿Eres psicólogo y aún no tienes cuenta?
-        <a routerLink="/registro" class="font-bold text-leaf-700 hover:underline">Regístrate</a>
-      </p>
+        <a routerLink="/registro" class="link">Crea tu cuenta profesional</a>
+      </div>
     </app-auth-layout>
   `,
 })

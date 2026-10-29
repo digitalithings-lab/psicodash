@@ -3,34 +3,37 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AdminStats } from '../../core/types';
-import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
+import { Icon } from '../../shared/icon';
+import { ErrorBanner, PageHeader, SkeletonCards, Stat } from '../../shared/ui';
 
 @Component({
   selector: 'app-admin-overview',
-  imports: [RouterLink, PageHeader, SkeletonCards, ErrorBanner],
+  imports: [RouterLink, PageHeader, SkeletonCards, ErrorBanner, Stat, Icon],
   template: `
-    <app-page-header title="Resumen" subtitle="Cómo va Florece hoy." />
+    <app-page-header eyebrow="Administración" title="Resumen" subtitle="Cómo va Florece hoy." />
     <app-error [message]="error()" />
 
     @if (!stats()) {
       <app-skeleton-cards [count]="6" />
     } @else {
-      <div class="grid gap-4 md:grid-cols-3">
-        @for (card of cards(); track card.label) {
-          <a [routerLink]="card.link" class="card flex items-center gap-4 transition hover:-translate-y-0.5" [class.pointer-events-none]="!card.link">
-            <span class="flex size-12 items-center justify-center rounded-full text-2xl" [class]="card.tint">{{ card.emoji }}</span>
-            <div>
-              <p class="text-3xl font-extrabold">{{ card.value }}</p>
-              <p class="text-sm text-muted">{{ card.label }}</p>
-            </div>
-          </a>
-        }
-      </div>
       @if (stats()!.pendingRiskEvents > 0) {
-        <a routerLink="/admin/alertas" class="card mt-6 block border-2 border-danger-100 font-bold text-danger-500 hover:underline">
-          Hay {{ stats()!.pendingRiskEvents }} alertas de riesgo sin revisar →
+        <a
+          routerLink="/admin/alertas"
+          class="card-interactive mb-6 flex items-center gap-4 border-danger-500/30 bg-danger-100 text-danger-500"
+        >
+          <span class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-surface/60"><app-icon name="alert" size="lg" /></span>
+          <div class="min-w-0 flex-1">
+            <p class="font-extrabold">Hay {{ stats()!.pendingRiskEvents }} {{ stats()!.pendingRiskEvents === 1 ? 'alerta' : 'alertas' }} de riesgo sin revisar</p>
+            <p class="text-sm opacity-90">Revísalas cuanto antes: alguien podría necesitar apoyo.</p>
+          </div>
+          <app-icon name="arrowRight" />
         </a>
       }
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (card of cards(); track card.label) {
+          <app-stat [label]="card.label" [value]="card.value" [emoji]="card.emoji" [tint]="card.tint" [link]="card.link" />
+        }
+      </div>
     }
   `,
 })

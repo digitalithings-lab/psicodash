@@ -47,8 +47,12 @@ export interface Appointment {
   status: AppointmentStatus;
   modality: 'VIDEO' | 'IN_PERSON';
   meetingUrl: string | null;
+  /** Motivo de la cita, escrito por el paciente al agendar. */
   note: string | null;
   cancelReason: string | null;
+  cancelledBy: 'PATIENT' | 'PSYCHOLOGIST' | null;
+  /** Datos que el paciente escribió al agendar (citas anteriores a este cambio no los tienen). */
+  patient: { fullName: string; idNumber: string | null; birthDate: string | null; age: number | null } | null;
 }
 
 export interface Dashboard {

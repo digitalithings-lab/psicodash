@@ -34,13 +34,20 @@ export interface PsyProfile {
   timezone: string;
   defaultMeetingUrl: string | null;
   linkCode: string;
+  /** Agenda pública: personas sin cuenta reservan desde el sitio web del psicólogo. */
+  publicBookingEnabled: boolean;
+  publicSlug: string | null;
+  /** Celular (E.164) que recibe un SMS por cada cita pedida desde la web. */
+  notifyPhone: string | null;
   verified: boolean;
   active: boolean;
 }
 
 export interface Appointment {
   id: string;
-  patientId: string;
+  /** Nulo si la cita se pidió desde la web, sin cuenta en la app. */
+  patientId: string | null;
+  source: 'APP' | 'WEB';
   patientName: string | null;
   startsAt: string;
   endsAt: string;
@@ -52,7 +59,14 @@ export interface Appointment {
   cancelReason: string | null;
   cancelledBy: 'PATIENT' | 'PSYCHOLOGIST' | null;
   /** Datos que el paciente escribió al agendar (citas anteriores a este cambio no los tienen). */
-  patient: { fullName: string; idNumber: string | null; birthDate: string | null; age: number | null } | null;
+  patient: {
+    fullName: string;
+    idNumber: string | null;
+    birthDate: string | null;
+    age: number | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
 }
 
 export interface Dashboard {

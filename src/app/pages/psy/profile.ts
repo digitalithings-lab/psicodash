@@ -91,6 +91,52 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
             <p class="mt-1 text-sm text-muted">{{ profile()!.verified ? '✓ Cédula verificada por Florece' : 'Cédula pendiente de verificación' }}</p>
           </section>
         </aside>
+
+        <!-- Agenda pública: tu sitio web muestra tu horario y la gente agenda sin cuenta. -->
+        <section class="card lg:col-span-2" aria-labelledby="agenda-web">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 id="agenda-web" class="text-lg font-extrabold">Agenda en tu sitio web</h2>
+              <p class="mt-1 text-sm text-muted">
+                Tus horarios de <b>Agenda</b> se muestran en tu web y cualquier persona puede pedir una cita, sin descargar la app.
+                Nunca se ofrece una hora que ya está ocupada.
+              </p>
+            </div>
+            <label class="inline-flex cursor-pointer items-center gap-3">
+              <input type="checkbox" class="peer sr-only" name="publicOn" [(ngModel)]="publicForm.enabled" />
+              <span
+                class="relative h-7 w-12 rounded-full bg-line-strong transition-colors after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:shadow-soft after:transition-transform peer-checked:bg-leaf-500 peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
+                aria-hidden="true"
+              ></span>
+              <span class="text-sm font-bold">{{ publicForm.enabled ? 'Activada' : 'Desactivada' }}</span>
+            </label>
+          </div>
+
+          <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="savePublic()">
+            <div>
+              <label class="label" for="slug">Enlace de tu agenda</label>
+              <input id="slug" class="input lowercase" name="slug" placeholder="nathalie-vera" maxlength="40" aria-describedby="slug-hint" [(ngModel)]="publicForm.slug" />
+              <p id="slug-hint" class="hint">Minúsculas, números y guiones. Tu web lo usa para encontrar tu horario.</p>
+            </div>
+            <div>
+              <label class="label" for="phone">Celular para avisos por SMS</label>
+              <input id="phone" class="input" name="phone" type="tel" inputmode="tel" placeholder="+50760000000" aria-describedby="phone-hint" [(ngModel)]="publicForm.phone" />
+              <p id="phone-hint" class="hint">Con código de país y sin espacios. Te llega un SMS por cada cita nueva.</p>
+            </div>
+            @if (profile()!.publicBookingEnabled && profile()!.publicSlug) {
+              <p class="rounded-2xl bg-leaf-50 px-4 py-3 text-sm sm:col-span-2">
+                <span class="font-bold text-leaf-700">✓ Tu agenda está publicada.</span>
+                Tu web la consulta en <code class="rounded bg-surface px-1.5 py-0.5 text-xs">/public/booking/{{ profile()!.publicSlug }}</code>.
+              </p>
+            }
+            <div class="flex items-center justify-end gap-3 sm:col-span-2">
+              @if (publicSaved()) {
+                <span class="text-sm font-bold text-leaf-700">✓ Guardado</span>
+              }
+              <button class="btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar agenda web' }}</button>
+            </div>
+          </form>
+        </section>
       </div>
     }
   `,
@@ -105,7 +151,9 @@ export class Profile implements OnInit {
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
   protected readonly browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  protected readonly publicSaved = signal(false);
   protected form: Partial<PsyProfile> = {};
+  protected publicForm = { enabled: false, slug: '', phone: '' };
   protected specialties = '';
   protected price = 0;
 
@@ -142,6 +190,26 @@ export class Profile implements OnInit {
     }
   }
 
+  protected async savePublic() {
+    this.error.set(null);
+    this.saving.set(true);
+    try {
+      this.fill(
+        await this.api.patch<PsyProfile>('/psy/me', {
+          publicBookingEnabled: this.publicForm.enabled,
+          publicSlug: this.publicForm.slug.trim().toLowerCase(),
+          notifyPhone: this.publicForm.phone.replace(/[\s()-]/g, ''),
+        }),
+      );
+      this.publicSaved.set(true);
+      setTimeout(() => this.publicSaved.set(false), 2500);
+    } catch (err) {
+      this.error.set(errorMessage(err, 'No pudimos guardar tu agenda web.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   protected async rotate() {
     if (!confirm('¿Generar un código nuevo? El anterior dejará de funcionar para vincular a nuevas personas.')) return;
     try {
@@ -156,5 +224,6 @@ export class Profile implements OnInit {
     this.form = { ...profile, bio: profile.bio ?? '', defaultMeetingUrl: profile.defaultMeetingUrl ?? '' };
     this.specialties = profile.specialties.join(', ');
     this.price = profile.sessionPriceCents / 100;
+    this.publicForm = { enabled: profile.publicBookingEnabled, slug: profile.publicSlug ?? '', phone: profile.notifyPhone ?? '' };
   }
 }

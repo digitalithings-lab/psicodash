@@ -32,12 +32,21 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
 
             <div class="min-w-0 flex-1">
               @if (showPatient()) {
-                <a class="font-bold hover:underline" [routerLink]="['/pacientes', a.patientId]">
-                  {{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}
-                </a>
+                @if (a.patientId) {
+                  <a class="font-bold hover:underline" [routerLink]="['/pacientes', a.patientId]">
+                    {{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}
+                  </a>
+                } @else {
+                  <span class="font-bold">{{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}</span>
+                }
               }
               <div class="mt-1 flex flex-wrap items-center gap-2">
                 <span class="chip" [class]="status(a).classes">{{ status(a).label }}</span>
+                @if (a.source === 'WEB') {
+                  <span class="chip bg-lilac-100 text-lilac-500" title="Pedida desde tu sitio web, sin cuenta en la app">
+                    <app-icon name="link" size="sm" /> Desde la web
+                  </span>
+                }
                 @if (a.meetingUrl && a.status === 'CONFIRMED') {
                   <a class="chip bg-sky-100 text-sky-500 hover:underline" [href]="a.meetingUrl" target="_blank" rel="noopener">
                     <app-icon name="video" size="sm" /> Videollamada
@@ -89,6 +98,16 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
                 <div [id]="'datos-' + a.id" class="mt-2 animate-fade-in rounded-2xl border border-line bg-background p-4">
                   @if (a.patient; as p) {
                     <dl class="grid gap-3 text-sm sm:grid-cols-3">
+                      @if (p.phone || p.email) {
+                        <div class="sm:col-span-3 flex flex-wrap gap-2">
+                          @if (p.phone) {
+                            <a class="chip bg-leaf-100 text-leaf-700 hover:underline" [href]="'tel:' + p.phone"><app-icon name="phone" size="sm" /> {{ p.phone }}</a>
+                          }
+                          @if (p.email) {
+                            <a class="chip bg-sky-100 text-sky-500 hover:underline" [href]="'mailto:' + p.email">{{ p.email }}</a>
+                          }
+                        </div>
+                      }
                       <div>
                         <dt class="eyebrow">Nombre completo</dt>
                         <dd class="mt-0.5 font-bold">{{ p.fullName }}</dd>

@@ -140,8 +140,8 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
               </ol>
               <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
                 <div class="flex-1">
-                  <label class="label" for="wakey">Clave (APIKEY) de CallMeBot</label>
-                  <input id="wakey" class="input font-mono" name="wakey" inputmode="numeric" autocomplete="off" placeholder="123456" [(ngModel)]="publicForm.whatsappKey" />
+                  <label class="label" for="wakey">Clave (APIKEY) de TextMeBot o CallMeBot</label>
+                  <input id="wakey" class="input font-mono" name="wakey" autocomplete="off" placeholder="Tu APIKEY" [(ngModel)]="publicForm.whatsappKey" />
                 </div>
                 <button type="button" class="btn-secondary" [disabled]="testing() || !profile()!.notifyPhone" (click)="testNotify()">
                   {{ testing() ? 'Enviando…' : 'Enviar mensaje de prueba' }}
@@ -150,7 +150,10 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
               @if (testResult()) {
                 <p class="mt-2 text-sm font-bold text-leaf-700" role="status">{{ testResult() }}</p>
               }
-              <p class="hint">CallMeBot es gratuito para avisos personales. Guarda antes de probar.</p>
+              <p class="hint">
+                CallMeBot es gratuito para avisos personales; TextMeBot (textmebot.com) es de pago y más estable. Sirve la clave de cualquiera de
+                los dos. Guarda antes de probar.
+              </p>
             </div>
             @if (profile()!.publicBookingEnabled && profile()!.publicSlug) {
               <p class="rounded-2xl bg-leaf-50 px-4 py-3 text-sm sm:col-span-2">

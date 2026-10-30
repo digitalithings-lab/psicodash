@@ -45,13 +45,14 @@ export function formatDateTime(iso: string, timezone?: string): string {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-    hour: '2-digit',
+    hour: 'numeric',
+    hour12: true,
     minute: '2-digit',
   }).format(new Date(iso));
 }
 
 export function formatTime(iso: string, timezone?: string): string {
-  return new Intl.DateTimeFormat('es', { timeZone: timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+  return new Intl.DateTimeFormat('es', { timeZone: timezone, hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso));
 }
 
 export function formatDate(iso: string, timezone?: string): string {

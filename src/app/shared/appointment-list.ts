@@ -23,7 +23,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
       @for (a of appointments(); track a.id) {
         <li class="py-4 first:pt-2 last:pb-2">
           <div class="flex flex-wrap items-start gap-x-4 gap-y-3">
-            <div class="w-24 shrink-0">
+            <div class="w-28 shrink-0">
               <p class="text-lg font-extrabold tabular-nums leading-tight">{{ time(a.startsAt) }}</p>
               @if (!compact()) {
                 <p class="text-xs capitalize text-muted">{{ dateTime(a.startsAt) }}</p>
@@ -82,7 +82,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
           </div>
 
           @if (a.patient || a.note) {
-            <div class="mt-3 sm:ml-28">
+            <div class="mt-3 sm:ml-32">
               <button
                 type="button"
                 class="inline-flex cursor-pointer items-center gap-1 rounded-lg text-xs font-bold text-leaf-700"

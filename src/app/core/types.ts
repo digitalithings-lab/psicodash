@@ -31,6 +31,8 @@ export interface PsyProfile {
   sessionPriceCents: number;
   currency: string;
   sessionMinutes: number;
+  /** Descanso entre una sesión y la siguiente, en minutos. */
+  bufferMinutes: number;
   timezone: string;
   defaultMeetingUrl: string | null;
   linkCode: string;

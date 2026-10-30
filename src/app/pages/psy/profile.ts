@@ -46,9 +46,16 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
               <textarea id="bio" class="input min-h-28" name="bio" maxlength="1000" [(ngModel)]="form.bio"
                 placeholder="Cuéntales a tus pacientes cómo trabajas."></textarea>
             </div>
-            <div>
-              <label class="label" for="minutes">Duración de la sesión (min)</label>
-              <input id="minutes" class="input" type="number" min="20" max="120" name="minutes" [(ngModel)]="form.sessionMinutes" />
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="label" for="minutes">Sesión (min)</label>
+                <input id="minutes" class="input" type="number" min="20" max="120" name="minutes" [(ngModel)]="form.sessionMinutes" />
+              </div>
+              <div>
+                <label class="label" for="buffer">Descanso (min)</label>
+                <input id="buffer" class="input" type="number" min="0" max="60" name="buffer" aria-describedby="buffer-hint" [(ngModel)]="form.bufferMinutes" />
+              </div>
+              <p id="buffer-hint" class="hint col-span-2">Tiempo libre entre una cita y la siguiente.</p>
             </div>
             <div>
               <label class="label" for="price">Precio por sesión</label>
@@ -199,6 +206,7 @@ export class Profile implements OnInit {
         specialties: this.specialties.split(',').map((s) => s.trim()).filter(Boolean),
         bio: this.form.bio ?? '',
         sessionMinutes: Number(this.form.sessionMinutes),
+        bufferMinutes: Number(this.form.bufferMinutes ?? 0),
         sessionPriceCents: Math.round(Number(this.price) * 100),
         currency: (this.form.currency ?? 'MXN').toUpperCase(),
         timezone: this.form.timezone,

@@ -119,9 +119,31 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
               <p id="slug-hint" class="hint">Minúsculas, números y guiones. Tu web lo usa para encontrar tu horario.</p>
             </div>
             <div>
-              <label class="label" for="phone">Celular para avisos por SMS</label>
+              <label class="label" for="phone">Tu WhatsApp para avisos</label>
               <input id="phone" class="input" name="phone" type="tel" inputmode="tel" placeholder="+50760000000" aria-describedby="phone-hint" [(ngModel)]="publicForm.phone" />
-              <p id="phone-hint" class="hint">Con código de país y sin espacios. Te llega un SMS por cada cita nueva.</p>
+              <p id="phone-hint" class="hint">Con código de país y sin espacios. Te avisamos de cada cita nueva.</p>
+            </div>
+
+            <div class="rounded-2xl border border-line bg-background p-4 sm:col-span-2">
+              <p class="flex items-center gap-2 text-sm font-bold"><app-icon name="sparkles" size="sm" /> Activa los avisos por WhatsApp (gratis, 2 minutos)</p>
+              <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted">
+                <li>Guarda en tus contactos el número <b class="text-ink">+34 644 33 66 63</b> (CallMeBot).</li>
+                <li>Desde tu WhatsApp, envíale: <code class="rounded bg-sand px-1.5 py-0.5 text-xs text-ink">I allow callmebot to send me messages</code></li>
+                <li>El bot te responde con tu <b class="text-ink">APIKEY</b>. Escríbela aquí abajo y guarda.</li>
+              </ol>
+              <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div class="flex-1">
+                  <label class="label" for="wakey">Clave (APIKEY) de CallMeBot</label>
+                  <input id="wakey" class="input font-mono" name="wakey" inputmode="numeric" autocomplete="off" placeholder="123456" [(ngModel)]="publicForm.whatsappKey" />
+                </div>
+                <button type="button" class="btn-secondary" [disabled]="testing() || !profile()!.notifyPhone" (click)="testNotify()">
+                  {{ testing() ? 'Enviando…' : 'Enviar mensaje de prueba' }}
+                </button>
+              </div>
+              @if (testResult()) {
+                <p class="mt-2 text-sm font-bold text-leaf-700" role="status">{{ testResult() }}</p>
+              }
+              <p class="hint">CallMeBot es gratuito para avisos personales. Guarda antes de probar.</p>
             </div>
             @if (profile()!.publicBookingEnabled && profile()!.publicSlug) {
               <p class="rounded-2xl bg-leaf-50 px-4 py-3 text-sm sm:col-span-2">
@@ -153,7 +175,9 @@ export class Profile implements OnInit {
   protected readonly browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   protected readonly publicSaved = signal(false);
   protected form: Partial<PsyProfile> = {};
-  protected publicForm = { enabled: false, slug: '', phone: '' };
+  protected readonly testing = signal(false);
+  protected readonly testResult = signal<string | null>(null);
+  protected publicForm = { enabled: false, slug: '', phone: '', whatsappKey: '' };
   protected specialties = '';
   protected price = 0;
 
@@ -199,6 +223,7 @@ export class Profile implements OnInit {
           publicBookingEnabled: this.publicForm.enabled,
           publicSlug: this.publicForm.slug.trim().toLowerCase(),
           notifyPhone: this.publicForm.phone.replace(/[\s()-]/g, ''),
+          notifyWhatsappKey: this.publicForm.whatsappKey.trim(),
         }),
       );
       this.publicSaved.set(true);
@@ -207,6 +232,20 @@ export class Profile implements OnInit {
       this.error.set(errorMessage(err, 'No pudimos guardar tu agenda web.'));
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  protected async testNotify() {
+    this.error.set(null);
+    this.testResult.set(null);
+    this.testing.set(true);
+    try {
+      const { channel } = await this.api.post<{ channel: 'whatsapp' | 'sms' }>('/psy/me/notify-test');
+      this.testResult.set(channel === 'whatsapp' ? '✓ Te enviamos un WhatsApp de prueba.' : '✓ Te enviamos un SMS de prueba.');
+    } catch (err) {
+      this.error.set(errorMessage(err, 'No pudimos enviar el mensaje de prueba.'));
+    } finally {
+      this.testing.set(false);
     }
   }
 
@@ -224,6 +263,11 @@ export class Profile implements OnInit {
     this.form = { ...profile, bio: profile.bio ?? '', defaultMeetingUrl: profile.defaultMeetingUrl ?? '' };
     this.specialties = profile.specialties.join(', ');
     this.price = profile.sessionPriceCents / 100;
-    this.publicForm = { enabled: profile.publicBookingEnabled, slug: profile.publicSlug ?? '', phone: profile.notifyPhone ?? '' };
+    this.publicForm = {
+      enabled: profile.publicBookingEnabled,
+      slug: profile.publicSlug ?? '',
+      phone: profile.notifyPhone ?? '',
+      whatsappKey: profile.notifyWhatsappKey ?? '',
+    };
   }
 }

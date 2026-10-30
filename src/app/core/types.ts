@@ -39,6 +39,8 @@ export interface PsyProfile {
   publicSlug: string | null;
   /** Celular (E.164) que recibe un SMS por cada cita pedida desde la web. */
   notifyPhone: string | null;
+  /** Clave de CallMeBot: con ella el aviso llega por WhatsApp. */
+  notifyWhatsappKey: string | null;
   verified: boolean;
   active: boolean;
 }

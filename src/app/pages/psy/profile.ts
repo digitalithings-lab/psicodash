@@ -2,6 +2,7 @@ import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/auth.interceptor';
+import { PushService, PushStatus } from '../../core/push.service';
 import { PsyProfile } from '../../core/types';
 import { Icon } from '../../shared/icon';
 import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
@@ -92,6 +93,52 @@ import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
               <app-icon name="refresh" size="sm" /> Generar otro código
             </button>
             <p class="mt-2 text-xs opacity-80">Los pacientes ya vinculados no se ven afectados.</p>
+          </section>
+          <!-- Avisos push: le llega una notificación al celular o la computadora con cada cita nueva. -->
+          <section class="card" aria-labelledby="push-title">
+            <p id="push-title" class="flex items-center gap-2 font-bold"><app-icon name="bell" size="sm" /> Avisos de citas nuevas</p>
+            <p class="mt-1 text-sm text-muted">Te llega una notificación cada vez que alguien te agenda, aunque el panel esté cerrado.</p>
+
+            @switch (pushBlocker) {
+              @case ('ios-install') {
+                <ol class="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted">
+                  <li>Abre este panel en <b class="text-ink">Safari</b>.</li>
+                  <li>Toca <b class="text-ink">Compartir</b> y luego <b class="text-ink">«Agregar a inicio»</b>.</li>
+                  <li>Entra desde el ícono de Florece y vuelve aquí para activarlos.</li>
+                </ol>
+              }
+              @case ('denied') {
+                <p class="mt-3 text-sm text-muted">
+                  Bloqueaste las notificaciones de este sitio. Permítelas en los ajustes del navegador (el candado junto a la dirección) y recarga.
+                </p>
+              }
+              @case ('unsupported') {
+                <p class="mt-3 text-sm text-muted">Este navegador no admite notificaciones. Prueba con Chrome, Edge, Firefox o Safari actualizados.</p>
+              }
+              @default {
+                @if (pushStatus(); as push) {
+                  @if (!push.enabled) {
+                    <p class="mt-3 text-sm text-muted">Los avisos todavía no están configurados en el servidor.</p>
+                  } @else if (pushService.subscribed()) {
+                    <p class="mt-3 text-sm font-bold text-leaf-700">✓ Activados en este dispositivo</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <button type="button" class="btn-secondary" [disabled]="pushBusy()" (click)="testPush()">Probar aviso</button>
+                      <button type="button" class="btn-ghost" [disabled]="pushBusy()" (click)="disablePush()">Desactivar</button>
+                    </div>
+                  } @else {
+                    <button type="button" class="btn-primary mt-3" [disabled]="pushBusy()" (click)="enablePush(push.publicKey)">
+                      {{ pushBusy() ? 'Activando…' : 'Activar notificaciones' }}
+                    </button>
+                  }
+                  @if (push.devices > 0) {
+                    <p class="hint">{{ push.devices === 1 ? '1 dispositivo recibe' : push.devices + ' dispositivos reciben' }} tus avisos.</p>
+                  }
+                }
+              }
+            }
+            @if (pushResult()) {
+              <p class="mt-2 text-sm font-bold text-leaf-700" role="status">{{ pushResult() }}</p>
+            }
           </section>
           <section class="card">
             <p class="font-bold">Estado de la cuenta</p>
@@ -191,11 +238,60 @@ export class Profile implements OnInit {
   protected specialties = '';
   protected price = 0;
 
+  protected readonly pushService = inject(PushService);
+  protected readonly pushBlocker = this.pushService.blocker();
+  protected readonly pushStatus = signal<PushStatus | null>(null);
+  protected readonly pushBusy = signal(false);
+  protected readonly pushResult = signal<string | null>(null);
+
   async ngOnInit() {
     try {
       this.fill(await this.api.get<PsyProfile>('/psy/me'));
     } catch (err) {
       this.error.set(errorMessage(err, 'No pudimos cargar tu perfil.'));
+    }
+    if (!this.pushBlocker) {
+      this.pushService.status().then((s) => this.pushStatus.set(s), () => undefined);
+    }
+  }
+
+  protected async enablePush(publicKey: string) {
+    await this.runPush(async () => {
+      this.pushStatus.set(await this.pushService.enable(publicKey));
+      await this.pushService.test();
+      return '✓ Listo. Te enviamos un aviso de prueba.';
+    }, 'No pudimos activar las notificaciones.');
+  }
+
+  protected async testPush() {
+    await this.runPush(async () => {
+      await this.pushService.test();
+      return '✓ Te enviamos un aviso de prueba.';
+    }, 'No pudimos enviar el aviso de prueba.');
+  }
+
+  protected async disablePush() {
+    await this.runPush(async () => {
+      const status = await this.pushService.disable();
+      if (status) this.pushStatus.set(status);
+      return 'Avisos desactivados en este dispositivo.';
+    }, 'No pudimos desactivar las notificaciones.');
+  }
+
+  private async runPush(action: () => Promise<string>, fallback: string) {
+    this.error.set(null);
+    this.pushResult.set(null);
+    this.pushBusy.set(true);
+    try {
+      this.pushResult.set(await action());
+    } catch (err) {
+      this.error.set(
+        err instanceof Error && err.message === 'denied'
+          ? 'No diste permiso para las notificaciones. Permítelas en los ajustes del navegador y vuelve a intentarlo.'
+          : errorMessage(err, fallback),
+      );
+    } finally {
+      this.pushBusy.set(false);
     }
   }
 

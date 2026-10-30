@@ -2,6 +2,7 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../core/api.service';
+import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { formatDateTime, formatTime, statusLabels } from '../core/format';
 import { Appointment } from '../core/types';
@@ -42,6 +43,11 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
               }
               <div class="mt-1 flex flex-wrap items-center gap-2">
                 <span class="chip" [class]="status(a).classes">{{ status(a).label }}</span>
+                @if (a.status === 'CONFIRMED' && a.patient?.phone) {
+                  <a class="chip bg-leaf-100 text-leaf-700 hover:underline" [href]="whatsappFor(a, 'confirm')" target="_blank" rel="noopener">
+                    <app-icon name="phone" size="sm" /> Escribir por WhatsApp
+                  </a>
+                }
                 @if (a.source === 'WEB') {
                   <span class="chip bg-lilac-100 text-lilac-500" title="Pedida desde tu sitio web, sin cuenta en la app">
                     <app-icon name="link" size="sm" /> Desde la web
@@ -143,6 +149,29 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
       }
     </ul>
 
+    @if (notice(); as n) {
+      <app-modal [title]="n.action === 'confirm' ? 'Cita confirmada' : 'Cita cancelada'" (closed)="notice.set(null)">
+        <div class="space-y-4 text-center">
+          <span
+            class="mx-auto flex size-14 items-center justify-center rounded-full"
+            [class]="n.action === 'confirm' ? 'bg-leaf-100 text-leaf-700' : 'bg-danger-100 text-danger-500'"
+          >
+            <app-icon [name]="n.action === 'confirm' ? 'check' : 'x'" size="lg" />
+          </span>
+          <p class="text-sm text-muted">
+            Avísale a <b class="text-ink">{{ n.appointment.patient?.fullName }}</b> por WhatsApp. Se abrirá tu WhatsApp con el mensaje listo; solo tienes que enviarlo.
+          </p>
+          <pre class="rounded-2xl bg-sand p-4 text-left font-sans text-sm whitespace-pre-wrap">{{ n.message }}</pre>
+          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
+            <button type="button" class="btn-ghost" (click)="notice.set(null)">Ahora no</button>
+            <a class="btn-primary" [href]="n.url" target="_blank" rel="noopener" (click)="notice.set(null)">
+              <app-icon name="phone" size="sm" /> Avisar por WhatsApp
+            </a>
+          </div>
+        </div>
+      </app-modal>
+    }
+
     @if (editing(); as e) {
       <app-modal
         [title]="e.action === 'confirm' ? 'Confirmar cita' : e.action === 'cancel' ? 'Cancelar cita' : 'Enlace de videollamada'"
@@ -211,6 +240,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
 })
 export class AppointmentList {
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
 
   readonly appointments = input.required<Appointment[]>();
   readonly timezone = input<string>();
@@ -221,6 +251,8 @@ export class AppointmentList {
   readonly changed = output<Appointment>();
 
   protected readonly editing = signal<{ appointment: Appointment; action: Action } | null>(null);
+  // Después de confirmar o cancelar una cita con teléfono: aviso por WhatsApp listo para enviar.
+  protected readonly notice = signal<{ appointment: Appointment; action: 'confirm' | 'cancel'; message: string; url: string } | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly reasonTouched = signal(false);
@@ -292,6 +324,9 @@ export class AppointmentList {
       });
       this.editing.set(null);
       this.changed.emit(updated);
+      if ((action === 'confirm' || action === 'cancel') && updated.patient?.phone) {
+        this.notice.set({ appointment: updated, action, message: this.whatsappText(updated, action), url: this.whatsappFor(updated, action) });
+      }
     } catch (err) {
       this.error.set(errorMessage(err));
       if (!this.editing()) alert(errorMessage(err));
@@ -299,4 +334,50 @@ export class AppointmentList {
       this.busy.set(false);
     }
   }
+
+  // ─── Aviso por WhatsApp ──────────────────────────────
+
+  protected whatsappFor(a: Appointment, action: 'confirm' | 'cancel') {
+    return `https://wa.me/${whatsappNumber(a.patient?.phone ?? '', this.timezone())}?text=${encodeURIComponent(this.whatsappText(a, action))}`;
+  }
+
+  private whatsappText(a: Appointment, action: 'confirm' | 'cancel') {
+    const first = (a.patient?.fullName ?? a.patientName ?? '').split(' ')[0];
+    const me = this.auth.user()?.profile?.displayName ?? 'tu psicóloga';
+    const when = this.dateTime(a.startsAt);
+    if (action === 'confirm') {
+      return [
+        `Hola ${first} 👋, soy ${me}.`,
+        `Tu cita del ${when} ha sido agendada ✅`,
+        a.meetingUrl ? `Enlace de la videollamada: ${a.meetingUrl}` : '',
+        '¡Nos vemos!',
+      ]
+        .filter(Boolean)
+        .join('\n');
+    }
+    return [
+      `Hola ${first}, soy ${me}.`,
+      `Lamento informarte que tu cita del ${when} fue cancelada.`,
+      a.cancelReason ? `Motivo: ${a.cancelReason}` : '',
+      'Escríbeme por aquí y buscamos otra fecha. 🙏',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+}
+
+// Número para wa.me: solo dígitos y con código de país. Sin «+», se asume el país de la zona horaria.
+const COUNTRY_BY_TIMEZONE: Record<string, string> = {
+  'America/Panama': '507',
+  'America/Mexico_City': '52',
+  'America/Bogota': '57',
+  'America/Lima': '51',
+  'America/Costa_Rica': '506',
+};
+
+function whatsappNumber(phone: string, timezone?: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (phone.trim().startsWith('+')) return digits;
+  const country = COUNTRY_BY_TIMEZONE[timezone ?? ''] ?? '507';
+  return digits.startsWith(country) && digits.length > 8 ? digits : country + digits;
 }

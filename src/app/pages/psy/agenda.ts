@@ -1,10 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/auth.interceptor';
 import { formatDateTime, minutesToTime, timeToMinutes, WEEK_ORDER, WEEKDAYS } from '../../core/format';
 import { Appointment, Availability, PsyProfile } from '../../core/types';
 import { AppointmentList } from '../../shared/appointment-list';
+import { AgendaCalendar } from './agenda-calendar';
 import { Icon } from '../../shared/icon';
 import { ErrorBanner, PageHeader, SkeletonCards } from '../../shared/ui';
 
@@ -16,7 +17,7 @@ interface Range {
 
 @Component({
   selector: 'app-agenda',
-  imports: [FormsModule, PageHeader, SkeletonCards, ErrorBanner, AppointmentList, Icon],
+  imports: [FormsModule, PageHeader, SkeletonCards, ErrorBanner, AppointmentList, AgendaCalendar, Icon],
   template: `
     <app-page-header title="Agenda" [subtitle]="profile() ? 'Horarios en tu zona: ' + profile()!.timezone : ''" />
     <app-error [message]="error()" />
@@ -25,7 +26,7 @@ interface Range {
       @for (s of sections; track s.id) {
         <button
           role="tab"
-          class="flex-1 rounded-full px-4 py-2.5 font-bold transition"
+          class="min-h-11 flex-1 rounded-full px-2 py-2 text-sm font-bold whitespace-nowrap transition sm:px-4 sm:py-2.5 sm:text-base"
           [class]="section() === s.id ? 'bg-surface text-leaf-700 shadow-soft' : 'text-muted'"
           [attr.aria-selected]="section() === s.id"
           (click)="section.set(s.id)"
@@ -44,35 +45,34 @@ interface Range {
       @switch (section()) {
         @case ('citas') {
           <div class="space-y-6">
-            <section class="card">
-              <h2 class="text-lg font-extrabold">Por confirmar</h2>
-              <app-appointment-list
-                [appointments]="requested()"
-                [timezone]="profile()?.timezone"
-                [defaultMeetingUrl]="profile()?.defaultMeetingUrl ?? null"
-                emptyText="No hay solicitudes pendientes."
-                (changed)="loadAppointments()"
-              />
-            </section>
-            <section class="card">
-              <h2 class="text-lg font-extrabold">Próximas citas</h2>
-              <app-appointment-list
-                [appointments]="confirmed()"
-                [timezone]="profile()?.timezone"
-                [defaultMeetingUrl]="profile()?.defaultMeetingUrl ?? null"
-                emptyText="No tienes citas confirmadas próximamente."
-                (changed)="loadAppointments()"
-              />
-            </section>
-            <section class="card">
-              <h2 class="text-lg font-extrabold">Historial (últimos 30 días)</h2>
-              <app-appointment-list
-                [appointments]="history()"
-                [timezone]="profile()?.timezone"
-                emptyText="Aún no hay citas pasadas."
-                (changed)="loadAppointments()"
-              />
-            </section>
+            @if (requested().length > 0) {
+              <button
+                type="button"
+                class="flex w-full items-center gap-3 rounded-2xl border border-peach-500/40 bg-peach-100/60 px-4 py-3 text-left transition-[transform,background-color] duration-150 ease-out hover:bg-peach-100 active:scale-[0.99]"
+                (click)="goToPending()"
+              >
+                <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-peach-500 text-sm font-extrabold text-white">{{ requested().length }}</span>
+                <span class="flex-1 font-bold">{{ requested().length === 1 ? 'Tienes 1 solicitud por confirmar' : 'Tienes ' + requested().length + ' solicitudes por confirmar' }}</span>
+                <app-icon name="chevronDown" size="sm" class="text-peach-700" />
+              </button>
+            }
+            <app-agenda-calendar
+              #calendar
+              [timezone]="availability()!.timezone"
+              [defaultMeetingUrl]="profile()?.defaultMeetingUrl ?? null"
+              (changed)="loadAppointments()"
+            />
+            @if (requested().length > 0) {
+              <section id="por-confirmar" class="card scroll-mt-20 border-peach-500/40 bg-peach-100/40">
+                <h2 class="text-lg font-extrabold">Por confirmar <span class="ml-1 rounded-full bg-peach-500 px-2 py-0.5 text-sm text-white">{{ requested().length }}</span></h2>
+                <app-appointment-list
+                  [appointments]="requested()"
+                  [timezone]="availability()!.timezone"
+                  [defaultMeetingUrl]="profile()?.defaultMeetingUrl ?? null"
+                  (changed)="onChanged()"
+                />
+              </section>
+            }
           </div>
         }
 
@@ -158,10 +158,11 @@ interface Range {
 })
 export class Agenda implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly calendar = viewChild(AgendaCalendar);
 
   protected readonly sections: { id: Section; label: string }[] = [
     { id: 'citas', label: 'Citas' },
-    { id: 'horario', label: 'Horario semanal' },
+    { id: 'horario', label: 'Horario' },
     { id: 'bloqueos', label: 'Bloqueos' },
   ];
   protected readonly weekOrder = WEEK_ORDER;
@@ -192,6 +193,16 @@ export class Agenda implements OnInit {
   async ngOnInit() {
     this.api.get<PsyProfile>('/psy/me').then((p) => this.profile.set(p)).catch(() => undefined);
     await Promise.all([this.loadAppointments(), this.loadAvailability()]);
+  }
+
+  /** Tras confirmar o cancelar desde la lista de pendientes: se actualiza esa lista y el calendario. */
+  protected goToPending() {
+    document.getElementById('por-confirmar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  protected onChanged() {
+    void this.loadAppointments();
+    this.calendar()?.refresh();
   }
 
   async loadAppointments() {

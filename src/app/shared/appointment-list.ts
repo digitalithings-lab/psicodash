@@ -246,6 +246,8 @@ export class AppointmentList {
   readonly timezone = input<string>();
   readonly showPatient = input(true);
   readonly compact = input(false);
+  /** Muestra abiertos los datos de cada cita (p. ej., en el detalle de una sola cita). */
+  readonly expanded = input(false);
   readonly defaultMeetingUrl = input<string | null>(null);
   readonly emptyText = input('No hay citas.');
   readonly changed = output<Appointment>();
@@ -289,7 +291,7 @@ export class AppointmentList {
     return new Date(a.startsAt).getTime() <= Date.now();
   }
   protected isOpen(a: Appointment) {
-    return this.toggled()[a.id] ?? (!this.compact() && a.status === 'REQUESTED');
+    return this.toggled()[a.id] ?? (this.expanded() || (!this.compact() && a.status === 'REQUESTED'));
   }
   protected toggle(a: Appointment) {
     this.toggled.update((current) => ({ ...current, [a.id]: !this.isOpen(a) }));

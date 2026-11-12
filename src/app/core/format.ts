@@ -1,4 +1,4 @@
-import { AppointmentStatus, ChallengeCategory, FocusArea, RiskLevel } from './types';
+import { Appointment, AppointmentStatus, ChallengeCategory, FocusArea, RiskLevel } from './types';
 
 export const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 export const WEEKDAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -76,3 +76,24 @@ export function weekdaysLabel(days: number[]): string {
     .map((d) => WEEKDAYS_SHORT[d])
     .join(' · ');
 }
+
+const firstName = (fullName: string) => fullName.trim().split(/\s+/)[0] ?? '';
+
+/** Nombre para mostrar de una cita: «Carlos y Gene» si es pareja; si no, el nombre de la persona. */
+export function appointmentTitle(a: Appointment): string {
+  const own = a.patient?.fullName ?? a.patientName ?? 'Paciente';
+  if (a.clientType === 'COUPLE' && a.partner) return `${firstName(own)} y ${firstName(a.partner.fullName)}`;
+  return own;
+}
+
+/** Saludo para el WhatsApp: «Carlos y Gene» si es pareja; si no, el primer nombre. */
+export function greetingName(a: Appointment): string {
+  const own = a.patient?.fullName ?? a.patientName ?? '';
+  if (a.clientType === 'COUPLE' && a.partner) return `${firstName(own)} y ${firstName(a.partner.fullName)}`;
+  return firstName(own);
+}
+
+export const clientTypeLabels: Record<'COUPLE' | 'CHILD', string> = {
+  COUPLE: 'Pareja',
+  CHILD: 'Niños y adolescentes',
+};

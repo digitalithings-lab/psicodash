@@ -1,15 +1,16 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
-import { formatDateTime, formatTime, statusLabels } from '../core/format';
+import { appointmentTitle, clientTypeLabels, formatDateTime, formatTime, greetingName, statusLabels } from '../core/format';
 import { Appointment } from '../core/types';
 import { Icon } from './icon';
 import { ErrorBanner, Modal } from './ui';
 
-type Action = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'update';
+type Action = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'update' | 'crm_sync';
 
 const MIN_REASON = 5;
 const MAX_REASON = 300;
@@ -18,7 +19,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
 // Lista de citas con sus acciones. Se usa en Inicio, Agenda y la ficha del paciente.
 @Component({
   selector: 'app-appointment-list',
-  imports: [FormsModule, RouterLink, Icon, Modal, ErrorBanner],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, Icon, Modal, ErrorBanner],
   template: `
     <ul class="divide-y divide-line">
       @for (a of appointments(); track a.id) {
@@ -35,14 +36,38 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
               @if (showPatient()) {
                 @if (a.patientId) {
                   <a class="font-bold hover:underline" [routerLink]="['/pacientes', a.patientId]">
-                    {{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}
+                    {{ title(a) }}
                   </a>
                 } @else {
-                  <span class="font-bold">{{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}</span>
+                  <span class="font-bold">{{ title(a) }}</span>
                 }
               }
               <div class="mt-1 flex flex-wrap items-center gap-2">
                 <span class="chip" [class]="status(a).classes">{{ status(a).label }}</span>
+                @if (a.clientType === 'COUPLE' || a.clientType === 'CHILD') {
+                  <span class="chip bg-lilac-100 text-lilac-500">{{ clientTypeLabel(a.clientType) }}</span>
+                }
+                @if (a.status === 'CONFIRMED' && a.crm) {
+                  @if (a.crm.synced) {
+                    <span class="chip bg-leaf-100 text-leaf-700" title="Ya está registrado en el CRM">
+                      <app-icon name="check" size="sm" /> Registrado en el CRM
+                    </span>
+                  } @else {
+                    <span class="chip bg-danger-100 text-danger-500" [attr.title]="a.crm.error || 'No se pudo registrar en el CRM'">
+                      <app-icon name="x" size="sm" /> No se pudo registrar en el CRM
+                    </span>
+                    <button
+                      type="button"
+                      class="chip cursor-pointer border border-line bg-surface text-muted transition-colors hover:border-line-strong hover:text-ink disabled:opacity-60"
+                      [disabled]="syncing() === a.id"
+                      [attr.aria-busy]="syncing() === a.id"
+                      [attr.aria-label]="'Reintentar el registro en el CRM de ' + title(a)"
+                      (click)="retrySync(a)"
+                    >
+                      {{ syncing() === a.id ? 'Reintentando…' : 'Reintentar' }}
+                    </button>
+                  }
+                }
                 @if (a.status === 'CONFIRMED' && a.patient?.phone) {
                   <a class="chip bg-leaf-100 text-leaf-700 hover:underline" [href]="whatsappFor(a, 'confirm')" target="_blank" rel="noopener">
                     <app-icon name="phone" size="sm" /> Escribir por WhatsApp
@@ -103,35 +128,20 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
               @if (isOpen(a)) {
                 <div [id]="'datos-' + a.id" class="mt-2 animate-fade-in rounded-2xl border border-line bg-background p-4">
                   @if (a.patient; as p) {
-                    <dl class="grid gap-3 text-sm sm:grid-cols-3">
-                      @if (p.phone || p.email) {
-                        <div class="sm:col-span-3 flex flex-wrap gap-2">
-                          @if (p.phone) {
-                            <a class="chip bg-leaf-100 text-leaf-700 hover:underline" [href]="'tel:' + p.phone"><app-icon name="phone" size="sm" /> {{ p.phone }}</a>
-                          }
-                          @if (p.email) {
-                            <a class="chip bg-sky-100 text-sky-500 hover:underline" [href]="'mailto:' + p.email">{{ p.email }}</a>
-                          }
-                        </div>
-                      }
-                      <div>
-                        <dt class="eyebrow">Nombre completo</dt>
-                        <dd class="mt-0.5 font-bold">{{ p.fullName }}</dd>
+                    @if (a.clientType === 'COUPLE' && a.partner; as partner) {
+                      <div class="space-y-5">
+                        <section aria-label="Persona 1">
+                          <p class="eyebrow mb-2">Persona 1</p>
+                          <ng-container [ngTemplateOutlet]="persona" [ngTemplateOutletContext]="{ $implicit: p }" />
+                        </section>
+                        <section class="border-t border-line pt-4" aria-label="Persona 2 (pareja)">
+                          <p class="eyebrow mb-2">Persona 2 (pareja)</p>
+                          <ng-container [ngTemplateOutlet]="persona" [ngTemplateOutletContext]="{ $implicit: partner }" />
+                        </section>
                       </div>
-                      <div>
-                        <dt class="eyebrow">Cédula</dt>
-                        <dd class="mt-0.5 font-mono font-bold tracking-wide">{{ p.idNumber ?? '—' }}</dd>
-                      </div>
-                      <div>
-                        <dt class="eyebrow">Fecha de nacimiento</dt>
-                        <dd class="mt-0.5 font-bold">
-                          {{ p.birthDate ? birth(p.birthDate) : '—' }}
-                          @if (p.age !== null) {
-                            <span class="font-semibold text-muted">· {{ p.age }} años</span>
-                          }
-                        </dd>
-                      </div>
-                    </dl>
+                    } @else {
+                      <ng-container [ngTemplateOutlet]="persona" [ngTemplateOutletContext]="{ $implicit: p }" />
+                    }
                   }
                   @if (a.note) {
                     <div class="border-line" [class]="a.patient ? 'mt-4 border-t pt-4' : ''">
@@ -149,6 +159,38 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
       }
     </ul>
 
+    <ng-template #persona let-p>
+      <dl class="grid gap-3 text-sm sm:grid-cols-3">
+        @if (p.phone || p.email) {
+          <div class="sm:col-span-3 flex flex-wrap gap-2">
+            @if (p.phone) {
+              <a class="chip bg-leaf-100 text-leaf-700 hover:underline" [href]="'tel:' + p.phone"><app-icon name="phone" size="sm" /> {{ p.phone }}</a>
+            }
+            @if (p.email) {
+              <a class="chip bg-sky-100 text-sky-500 hover:underline" [href]="'mailto:' + p.email">{{ p.email }}</a>
+            }
+          </div>
+        }
+        <div>
+          <dt class="eyebrow">Nombre completo</dt>
+          <dd class="mt-0.5 font-bold">{{ p.fullName }}</dd>
+        </div>
+        <div>
+          <dt class="eyebrow">Cédula</dt>
+          <dd class="mt-0.5 font-mono font-bold tracking-wide">{{ p.idNumber ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt class="eyebrow">Fecha de nacimiento</dt>
+          <dd class="mt-0.5 font-bold">
+            {{ p.birthDate ? birth(p.birthDate) : '—' }}
+            @if (p.age !== null) {
+              <span class="font-semibold text-muted">· {{ p.age }} años</span>
+            }
+          </dd>
+        </div>
+      </dl>
+    </ng-template>
+
     @if (notice(); as n) {
       <app-modal [title]="n.action === 'confirm' ? 'Cita confirmada' : 'Cita cancelada'" (closed)="notice.set(null)">
         <div class="space-y-4 text-center">
@@ -159,7 +201,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
             <app-icon [name]="n.action === 'confirm' ? 'check' : 'x'" size="lg" />
           </span>
           <p class="text-sm text-muted">
-            Avísale a <b class="text-ink">{{ n.appointment.patient?.fullName }}</b> por WhatsApp. Se abrirá tu WhatsApp con el mensaje listo; solo tienes que enviarlo.
+            Avísale a <b class="text-ink">{{ title(n.appointment) }}</b> por WhatsApp. Se abrirá tu WhatsApp con el mensaje listo; solo tienes que enviarlo.
           </p>
           <pre class="rounded-2xl bg-sand p-4 text-left font-sans text-sm whitespace-pre-wrap">{{ n.message }}</pre>
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
@@ -178,7 +220,7 @@ const QUICK_REASONS = ['Tuve un imprevisto y no podré atenderte.', 'Por motivos
         (closed)="editing.set(null)"
       >
         <p class="mb-5 rounded-2xl bg-sand px-4 py-3 text-sm">
-          <span class="font-bold">{{ e.appointment.patient?.fullName ?? e.appointment.patientName ?? 'Paciente' }}</span>
+          <span class="font-bold">{{ title(e.appointment) }}</span>
           <span class="capitalize text-muted"> · {{ dateTime(e.appointment.startsAt) }}</span>
         </p>
 
@@ -256,6 +298,8 @@ export class AppointmentList {
   // Después de confirmar o cancelar una cita con teléfono: aviso por WhatsApp listo para enviar.
   protected readonly notice = signal<{ appointment: Appointment; action: 'confirm' | 'cancel'; message: string; url: string } | null>(null);
   protected readonly busy = signal(false);
+  // Id de la cita cuyo registro en el CRM se está reintentando.
+  protected readonly syncing = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly reasonTouched = signal(false);
   // Las solicitudes nuevas muestran sus datos abiertos; el resto, al tocar.
@@ -286,6 +330,12 @@ export class AppointmentList {
   }
   protected status(a: Appointment) {
     return statusLabels[a.status];
+  }
+  protected title(a: Appointment) {
+    return appointmentTitle(a);
+  }
+  protected clientTypeLabel(type: 'COUPLE' | 'CHILD') {
+    return clientTypeLabels[type];
   }
   protected started(a: Appointment) {
     return new Date(a.startsAt).getTime() <= Date.now();
@@ -337,6 +387,20 @@ export class AppointmentList {
     }
   }
 
+  // Reintenta el registro en el CRM de una cita confirmada.
+  protected async retrySync(appointment: Appointment) {
+    if (this.syncing()) return;
+    this.syncing.set(appointment.id);
+    try {
+      const updated = await this.api.patch<Appointment>(`/psy/appointments/${appointment.id}`, { action: 'crm_sync' });
+      this.changed.emit(updated);
+    } catch (err) {
+      alert(errorMessage(err));
+    } finally {
+      this.syncing.set(null);
+    }
+  }
+
   // ─── Aviso por WhatsApp ──────────────────────────────
 
   protected whatsappFor(a: Appointment, action: 'confirm' | 'cancel') {
@@ -344,7 +408,8 @@ export class AppointmentList {
   }
 
   private whatsappText(a: Appointment, action: 'confirm' | 'cancel') {
-    const first = (a.patient?.fullName ?? a.patientName ?? '').split(' ')[0];
+    // Si es pareja, saluda a ambos («Carlos y Gene»); el teléfono sigue siendo el de la persona 1.
+    const first = greetingName(a);
     const me = this.auth.user()?.profile?.displayName ?? 'tu psicóloga';
     const when = this.dateTime(a.startsAt);
     if (action === 'confirm') {

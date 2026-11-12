@@ -1,7 +1,7 @@
 import { Component, computed, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/auth.interceptor';
-import { formatTime, statusLabels } from '../../core/format';
+import { appointmentTitle, formatTime, statusLabels } from '../../core/format';
 import { Appointment } from '../../core/types';
 import { AppointmentList } from '../../shared/appointment-list';
 import { Icon } from '../../shared/icon';
@@ -95,7 +95,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
                   <span class="block text-xs font-semibold text-muted">{{ time(a.endsAt) }}</span>
                 </span>
                 <span class="min-w-0 flex-1">
-                  <span class="block truncate font-bold">{{ a.patient?.fullName ?? a.patientName ?? 'Paciente' }}</span>
+                  <span class="block truncate font-bold">{{ title(a) }}</span>
                   <span class="mt-1 flex flex-wrap items-center gap-1.5">
                     <span class="chip" [class]="status(a).classes">{{ status(a).label }}</span>
                     <span class="inline-flex items-center gap-1 text-xs text-muted">
@@ -275,6 +275,9 @@ export class AgendaCalendar {
   }
   protected status(a: Appointment) {
     return statusLabels[a.status];
+  }
+  protected title(a: Appointment) {
+    return appointmentTitle(a);
   }
   protected noSlotsText() {
     return this.selected() < this.today() ? 'Este día ya pasó.' : 'No quedan horas libres este día.';

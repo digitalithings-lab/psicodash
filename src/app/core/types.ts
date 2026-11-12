@@ -63,14 +63,24 @@ export interface Appointment {
   cancelReason: string | null;
   cancelledBy: 'PATIENT' | 'PSYCHOLOGIST' | null;
   /** Datos que el paciente escribió al agendar (citas anteriores a este cambio no los tienen). */
-  patient: {
-    fullName: string;
-    idNumber: string | null;
-    birthDate: string | null;
-    age: number | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
+  patient: AppointmentPerson | null;
+  /** Quién agenda: una persona, una pareja o un niño/adolescente. Ausente en citas anteriores. */
+  clientType?: ClientType;
+  /** Segunda persona; solo viene cuando clientType es COUPLE. */
+  partner?: AppointmentPerson | null;
+  /** Estado del registro en el CRM (solo tiene sentido en citas confirmadas). */
+  crm?: { synced: boolean; error: string | null };
+}
+
+export type ClientType = 'INDIVIDUAL' | 'COUPLE' | 'CHILD';
+
+export interface AppointmentPerson {
+  fullName: string;
+  idNumber: string | null;
+  birthDate: string | null;
+  age: number | null;
+  email: string | null;
+  phone: string | null;
 }
 
 export interface Dashboard {
